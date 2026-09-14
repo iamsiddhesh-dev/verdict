@@ -1,0 +1,40 @@
+# Production on a single VM: the app, plus Caddy in front for HTTPS.
+#
+#   docker compose up -d --build
+#
+# Reads secrets from .env next to this file, and DOMAIN (e.g. verdict.duckdns.org)
+# from the same file. Caddy gets and renews the HTTPS certificate on its own and
+# passes WebSocket upgrades through without any extra setup.
+
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      SITE_URL: https://${DOMAIN:?Set DOMAIN in .env}
+      NODE_OPTIONS: --max-old-space-size=1536
+      WORKER_CONCURRENCY: "3"
+    expose:
+      - "8000"
+    logging:
+      driver: json-file
+      options: { max-size: "10m", max-file: "3" }
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on: [app]
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      DOMAIN: ${DOMAIN}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:

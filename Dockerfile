@@ -1,6 +1,7 @@
 # One container: Next.js, the WebSocket server, the run worker and Tectonic.
-# Sized for small free instances (Koyeb: 0.1 vCPU, 512 MB): the server is
-# precompiled at build time, and Tectonic's packages are cached in the image.
+# The server is precompiled at build time and Tectonic's packages are cached in
+# the image, so it starts fast even on a small instance. Memory and concurrency
+# defaults are conservative; docker-compose.yml raises them for a real VM.
 
 FROM node:22-bookworm-slim AS build
 WORKDIR /app
@@ -15,8 +16,10 @@ RUN apt-get update \
   && rm -rf /var/lib/apt/lists/*
 
 # Tectonic, the statically linked build: one file, no system libraries needed.
+# Picks x86_64 or aarch64 (Oracle's free Ampere VMs are ARM).
 ARG TECTONIC_VERSION=0.17.0
-RUN curl -fsSL "https://github.com/tectonic-typesetting/tectonic/releases/download/tectonic%40${TECTONIC_VERSION}/tectonic-${TECTONIC_VERSION}-x86_64-unknown-linux-musl.tar.gz" \
+RUN ARCH="$(uname -m)" \
+  && curl -fsSL "https://github.com/tectonic-typesetting/tectonic/releases/download/tectonic%40${TECTONIC_VERSION}/tectonic-${TECTONIC_VERSION}-${ARCH}-unknown-linux-musl.tar.gz" \
   | tar -xz -C /usr/local/bin tectonic && tectonic --version
 
 ENV NODE_ENV=production \

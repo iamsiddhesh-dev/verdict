@@ -81,16 +81,22 @@ no Supabase project is needed to try it.
 
 ## Deploy
 
-The repository includes a `Dockerfile` that bundles the app, the WebSocket server, the worker and Tectonic
-into one container listening on `$PORT` (default 8000). It is sized to run on
-[Koyeb's free instance](https://www.koyeb.com/docs/faqs/pricing) (0.1 vCPU, 512 MB):
+The `Dockerfile` bundles the app, the WebSocket server, the worker and Tectonic into one container
+(x86_64 or ARM). `docker-compose.yml` runs it behind [Caddy](https://caddyserver.com), which handles HTTPS.
+Any VM with Docker works; an [Oracle Cloud Always Free](https://www.oracle.com/cloud/free/) Ampere VM
+runs it at no cost:
 
-1. On Koyeb, create a Web Service from this GitHub repository and choose the **Dockerfile** builder.
-2. Instance: **Free**. Exposed port: **8000**, HTTP, path `/`.
-3. Add the variables from `.env.example` (keys as Secrets). `SITE_URL` is optional on Koyeb.
-4. In Supabase, add `https://<your-app>.koyeb.app/auth/callback` to the redirect URLs.
+```bash
+# on a fresh Ubuntu VM, with ports 80 and 443 allowed in the cloud firewall
+curl -fsSL https://raw.githubusercontent.com/iamsiddhesh-dev/verdict/main/deploy/setup-server.sh | bash
+# log out and back in, then:
+cd ~/verdict
+nano .env                    # variables from .env.example, plus DOMAIN=your.domain
+docker compose up -d --build
+```
 
-It also runs on any other host that runs a container with a long-lived process.
+Point `DOMAIN` at the VM's public IP first (a free [DuckDNS](https://www.duckdns.org) name works), and add
+`https://<DOMAIN>/auth/callback` to Supabase's redirect URLs. Update later with `bash deploy/update.sh`.
 
 Serverless platforms such as Vercel are not a fit: the worker, the WebSocket server and the LaTeX compiler
 all need a persistent process.
