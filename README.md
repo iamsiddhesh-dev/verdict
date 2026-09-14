@@ -81,11 +81,16 @@ no Supabase project is needed to try it.
 
 ## Deploy
 
-The repository includes a `Dockerfile` that bundles the app, the worker and Tectonic into one container
-listening on `$PORT`. It runs anywhere that runs a container with a long-lived process, for example
-[Hugging Face Spaces](https://huggingface.co/docs/hub/spaces-sdks-docker) (Docker SDK), Render or Koyeb.
-Set the variables from `.env.example`, plus `SITE_URL` for share links, and add
-`https://<your-domain>/auth/callback` to Supabase's redirect URLs.
+The repository includes a `Dockerfile` that bundles the app, the WebSocket server, the worker and Tectonic
+into one container listening on `$PORT` (default 8000). It is sized to run on
+[Koyeb's free instance](https://www.koyeb.com/docs/faqs/pricing) (0.1 vCPU, 512 MB):
+
+1. On Koyeb, create a Web Service from this GitHub repository and choose the **Dockerfile** builder.
+2. Instance: **Free**. Exposed port: **8000**, HTTP, path `/`.
+3. Add the variables from `.env.example` (keys as Secrets). `SITE_URL` is optional on Koyeb.
+4. In Supabase, add `https://<your-app>.koyeb.app/auth/callback` to the redirect URLs.
+
+It also runs on any other host that runs a container with a long-lived process.
 
 Serverless platforms such as Vercel are not a fit: the worker, the WebSocket server and the LaTeX compiler
 all need a persistent process.

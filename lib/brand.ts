@@ -9,7 +9,12 @@ export const X_HANDLE = "@__iamsiddhesh__";
 
 /** The public origin, for absolute URLs in metadata, the sitemap and share images. */
 export function siteUrl(): URL {
-  const raw = process.env.SITE_URL?.trim() || process.env.NEXT_PUBLIC_SITE_URL?.trim() || "http://localhost:3000";
+  const raw =
+    process.env.SITE_URL?.trim() ||
+    process.env.NEXT_PUBLIC_SITE_URL?.trim() ||
+    // Koyeb sets this to the service's public domain.
+    (process.env.KOYEB_PUBLIC_DOMAIN ? `https://${process.env.KOYEB_PUBLIC_DOMAIN}` : "") ||
+    "http://localhost:3000";
   try {
     return new URL(raw);
   } catch {

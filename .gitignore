@@ -11,3 +11,4 @@ coverage/
 
 # Local editor and agent settings
 .claude/
+dist/

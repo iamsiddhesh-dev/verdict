@@ -18,7 +18,7 @@
 
 import { readdirSync, readFileSync, mkdirSync } from "node:fs";
 import path from "node:path";
-import type { SQL } from "drizzle-orm";
+import { sql, type SQL } from "drizzle-orm";
 import type { PgDatabase, PgQueryResultHKT } from "drizzle-orm/pg-core";
 import * as schema from "@/db/schema";
 
@@ -40,7 +40,8 @@ async function createState(): Promise<{ db: Db; runRaw: (sqlText: string) => Pro
     // prepare:false keeps this compatible with Supabase's transaction pooler.
     // Anything that is not a local database gets TLS.
     const local = /@(localhost|127\.0\.0\.1|\[::1\])[:/]/.test(url);
-    const client = postgres(url, { max: 5, prepare: false, ssl: local ? false : "require" });
+    // onnotice: migrations are idempotent and Postgres reports every "already exists" as a notice.
+    const client = postgres(url, { max: 5, prepare: false, ssl: local ? false : "require", onnotice: () => {} });
     return {
       db: drizzle(client, { schema }) as unknown as Db,
       runRaw: async (text) => {
@@ -70,18 +71,29 @@ function init(): DbState {
   } as DbState;
   s.ready = (async () => {
     const { db, runRaw } = await createState();
-    await migrate(runRaw);
     s.db = db;
+    await migrate(runRaw, async () => {
+      try {
+        const rows = (await db.execute(sql`SELECT name FROM schema_migrations`)) as unknown;
+        const list = Array.isArray(rows) ? rows : ((rows as { rows?: unknown[] }).rows ?? []);
+        return new Set((list as Array<{ name: string }>).map((r) => r.name));
+      } catch {
+        return new Set<string>();
+      }
+    });
   })();
   return s;
 }
 
-async function migrate(runRaw: (sqlText: string) => Promise<void>) {
+async function migrate(runRaw: (sqlText: string) => Promise<void>, applied: () => Promise<Set<string>>) {
   const dir = path.join(process.cwd(), "db", "migrations");
   await runRaw(`CREATE TABLE IF NOT EXISTS schema_migrations (name text PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now())`);
+  const done = await applied();
   const files = readdirSync(dir)
     .filter((f) => f.endsWith(".sql"))
-    .sort();
+    .sort()
+    // Applied migrations are skipped, so a restart does not re-run every file over the network.
+    .filter((f) => !done.has(f));
   for (const file of files) {
     const body = readFileSync(path.join(dir, file), "utf8");
     // Every migration is written to be idempotent (IF NOT EXISTS), so applying

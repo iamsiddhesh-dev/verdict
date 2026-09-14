@@ -6,6 +6,10 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
 const mono = JetBrains_Mono({ subsets: ["latin"], variable: "--font-jetbrains", display: "swap" });
 
+// Rendered per request, so SITE_URL is read when the server runs rather than
+// baked in when the image is built (hosts often build before the domain is set).
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   metadataBase: siteUrl(),
   title: { default: `${PRODUCT_NAME}: is this job worth applying to?`, template: `%s · ${PRODUCT_NAME}` },

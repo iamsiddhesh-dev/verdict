@@ -1,36 +1,39 @@
 # One container: Next.js, the WebSocket server, the run worker and Tectonic.
-# Runs as uid 1000 on the port in $PORT, which suits Hugging Face Spaces (Docker)
-# and any other host that runs a plain image.
+# Sized for small free instances (Koyeb: 0.1 vCPU, 512 MB): the server is
+# precompiled at build time, and Tectonic's packages are cached in the image.
 
 FROM node:22-bookworm-slim AS build
-# Static pages carry absolute share-image URLs, so the public URL is needed at build time.
-ARG SITE_URL=http://localhost:3000
-ENV SITE_URL=$SITE_URL
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 COPY . .
-RUN npm run build && npm prune --omit=dev
+RUN npm run build && npm run build:server && npm prune --omit=dev
 
 FROM node:22-bookworm-slim
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends ca-certificates curl libfontconfig1 \
+  && apt-get install -y --no-install-recommends ca-certificates curl \
   && rm -rf /var/lib/apt/lists/*
 
-# Tectonic's official installer drops a single binary in the current directory.
-RUN cd /usr/local/bin && curl --proto '=https' --tlsv1.2 -fsSL https://drop-sh.fullyjustified.net | sh && tectonic --version
+# Tectonic, the statically linked build: one file, no system libraries needed.
+ARG TECTONIC_VERSION=0.17.0
+RUN curl -fsSL "https://github.com/tectonic-typesetting/tectonic/releases/download/tectonic%40${TECTONIC_VERSION}/tectonic-${TECTONIC_VERSION}-x86_64-unknown-linux-musl.tar.gz" \
+  | tar -xz -C /usr/local/bin tectonic && tectonic --version
 
 ENV NODE_ENV=production \
-    PORT=7860 \
-    XDG_CACHE_HOME=/app/.cache
+    PORT=8000 \
+    HOST=0.0.0.0 \
+    XDG_CACHE_HOME=/app/.cache \
+    WORKER_CONCURRENCY=2 \
+    NODE_OPTIONS=--max-old-space-size=320
 WORKDIR /app
+RUN chown node:node /app
 COPY --from=build --chown=node:node /app ./
 USER node
 
-# Compile the resume template once at build time, so the packages it needs are
-# already cached and the first real resume does not wait on downloads.
+# Compile the resume template once, so the LaTeX packages it needs are already in
+# the image and the first real resume does not wait on downloads.
 RUN mkdir -p /tmp/warm && node node_modules/tsx/dist/cli.mjs scripts/warm-tectonic.ts /tmp/warm/warm.tex \
   && tectonic --untrusted --chatter minimal --outdir /tmp/warm /tmp/warm/warm.tex && rm -rf /tmp/warm
 
-EXPOSE 7860
-CMD ["node", "node_modules/tsx/dist/cli.mjs", "server.ts", "--prod"]
+EXPOSE 8000
+CMD ["node", "dist/server.mjs", "--prod"]
