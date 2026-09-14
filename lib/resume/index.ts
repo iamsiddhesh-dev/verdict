@@ -119,9 +119,9 @@ What the role is: ${read.summary}
 Stack: ${read.stack.join(", ") || "not stated"}
 Must have: ${must}
 Nice to have: ${read.niceToHave.join("; ") || "none stated"}
-Posting:
+Posting (start):
 """
-${jobText.slice(0, 4_000)}
+${jobText.slice(0, 2_500)}
 """
 
 FIT
@@ -387,6 +387,7 @@ export async function tailorResume(params: {
     const result = await generateStructured({
       task: "tailor",
       schema: tailorSchema,
+      reasoning: "low",
       prompt: tailorPrompt(parsed, read, score, jobText, bulletBudget, corrections),
       onWait: params.onWait,
       maxWaitMs: 240_000,

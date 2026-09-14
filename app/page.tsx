@@ -2,7 +2,7 @@ import { FileText, Lock, MessageSquareText, Send, ShieldCheck } from "lucide-rea
 import { redirect } from "next/navigation";
 import { PasteBox } from "@/components/paste-box";
 import { GapChip, ScoreRing, VerdictBadge } from "@/components/verdict";
-import { currentUserId } from "@/lib/auth";
+import { currentUser } from "@/lib/auth";
 import { PRODUCT_NAME } from "@/lib/brand";
 import { listRuns } from "@/lib/pipeline/runs";
 import { loadProfile } from "@/lib/profile";
@@ -10,18 +10,20 @@ import { loadProfile } from "@/lib/profile";
 export const dynamic = "force-dynamic";
 
 export default async function Landing() {
-  const userId = await currentUserId();
-  if (userId) {
-    const [profile, runs] = await Promise.all([loadProfile(userId), listRuns(userId, 1)]);
+  const user = await currentUser();
+  if (user && !user.local) redirect("/dashboard");
+  if (user?.local) {
+    const [profile, runs] = await Promise.all([loadProfile(user.id), listRuns(user.id, 1)]);
     if (profile || runs.length) redirect("/dashboard");
   }
+  const signedIn = Boolean(user);
 
   return (
     <div className="mx-auto w-full max-w-[1120px] px-5 md:px-10">
       <header className="flex h-16 items-center justify-between">
         <span className="text-[18px] font-semibold tracking-[-0.01em]">{PRODUCT_NAME}</span>
-        <a href="/profile" className="text-[14px] font-medium text-ink-2 hover:text-ink">
-          Set up profile
+        <a href={signedIn ? "/profile" : "/login"} className="text-[14px] font-medium text-ink-2 hover:text-ink">
+          {signedIn ? "Set up profile" : "Sign in"}
         </a>
       </header>
 
@@ -33,7 +35,7 @@ export default async function Landing() {
           Paste a job. It gets read, checked and scored against your real background, and you get a plain verdict: apply, borderline or skip, with the reasons.
         </p>
         <div className="mt-8 max-w-3xl">
-          <PasteBox size="lg" />
+          <PasteBox size="lg" signedIn={signedIn} />
         </div>
       </section>
 

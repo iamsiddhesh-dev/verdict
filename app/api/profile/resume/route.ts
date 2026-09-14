@@ -2,6 +2,7 @@
 // confirmed here; the user reviews the parsed facts first, because a wrong fact
 // at this step quietly skews every verdict after it.
 
+import { eq } from "drizzle-orm";
 import { profiles } from "@/db/schema";
 import { requireUser } from "@/lib/auth";
 import { getDb } from "@/lib/db";
@@ -9,6 +10,26 @@ import { errorResponse, json, route } from "@/lib/http";
 import { detectResumeKind, extractResumeText, parseResumeText } from "@/lib/profile/resume";
 
 export const maxDuration = 120;
+
+/** The original uploaded file. */
+export const GET = route(async () => {
+  const userId = await requireUser();
+  const db = await getDb();
+  const [row] = await db
+    .select({ file: profiles.resumeFile, name: profiles.resumeFilename, mime: profiles.resumeMime })
+    .from(profiles)
+    .where(eq(profiles.userId, userId))
+    .limit(1);
+  if (!row?.file) return errorResponse("No resume file is saved for this account.", 404);
+  const name = (row.name ?? "resume").replace(/["\\\r\n]/g, "");
+  return new Response(new Uint8Array(row.file), {
+    headers: {
+      "Content-Type": row.mime || "application/octet-stream",
+      "Content-Disposition": `attachment; filename="${name}"`,
+      "Cache-Control": "private, no-store",
+    },
+  });
+});
 const MAX_BYTES = 5_000_000;
 
 export const POST = route(async (req: Request) => {
@@ -37,6 +58,9 @@ export const POST = route(async (req: Request) => {
   const values = {
     resumeText: text,
     resumeFilename: file.name,
+    // The original file stays with the account, so it can be downloaded again.
+    resumeFile: Buffer.from(bytes),
+    resumeMime: file.type || null,
     facts,
     // A new resume means the old confirmation no longer describes this profile.
     confirmedAt: null,

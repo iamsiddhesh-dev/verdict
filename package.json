@@ -12,7 +12,8 @@
     "test": "vitest run",
     "eval:verdicts": "node --env-file-if-exists=.env node_modules/tsx/dist/cli.mjs scripts/eval-verdicts.ts",
     "try:resume": "node --env-file-if-exists=.env node_modules/tsx/dist/cli.mjs scripts/try-resume.ts",
-    "probe:providers": "node --env-file-if-exists=.env node_modules/tsx/dist/cli.mjs scripts/probe-providers.ts"
+    "probe:keys": "node --env-file-if-exists=.env node_modules/tsx/dist/cli.mjs scripts/probe-keys.ts",
+    "try:compile": "node node_modules/tsx/dist/cli.mjs scripts/try-compile.ts"
   },
   "dependencies": {
     "@ai-sdk/google": "^4.0.69",
@@ -20,6 +21,8 @@
     "@ai-sdk/openai-compatible": "^3.0.48",
     "@electric-sql/pglite": "^0.5.8",
     "@mozilla/readability": "^0.6.0",
+    "@supabase/ssr": "^0.12.7",
+    "@supabase/supabase-js": "^2.116.0",
     "ai": "^7.0.99",
     "drizzle-orm": "^0.45.2",
     "linkedom": "^0.18.13",

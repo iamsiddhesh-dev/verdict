@@ -2,7 +2,7 @@
 
 import { ArrowRight, Link2, TextCursorInput } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { RunView } from "@/lib/pipeline/runs";
 import { Button, Textarea, cx } from "./ui/primitives";
 import { api } from "./use-live";
@@ -17,15 +17,41 @@ export function classifyInput(raw: string): { kind: "url"; url: string } | { kin
   return { kind: "text", text: s };
 }
 
-export function PasteBox({ autoFocus, size = "md" }: { autoFocus?: boolean; size?: "md" | "lg" }) {
+// What a signed-out visitor pasted on the landing page, carried through sign-in
+// so they do not have to find the posting again.
+const PENDING_KEY = "verdict:pending-input";
+
+export function PasteBox({ autoFocus, size = "md", signedIn = true }: { autoFocus?: boolean; size?: "md" | "lg"; signedIn?: boolean }) {
   const router = useRouter();
   const [value, setValue] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const input = classifyInput(value);
 
+  useEffect(() => {
+    if (!signedIn) return;
+    try {
+      const pending = sessionStorage.getItem(PENDING_KEY);
+      if (pending) {
+        setValue(pending);
+        sessionStorage.removeItem(PENDING_KEY);
+      }
+    } catch {
+      // storage unavailable; nothing to restore
+    }
+  }, [signedIn]);
+
   const submit = async () => {
     if (input.kind === "empty") return;
+    if (!signedIn) {
+      try {
+        sessionStorage.setItem(PENDING_KEY, value);
+      } catch {
+        // storage unavailable; they can paste again after signing in
+      }
+      router.push("/login?next=/dashboard");
+      return;
+    }
     setBusy(true);
     setError(null);
     try {

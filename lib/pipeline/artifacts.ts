@@ -88,14 +88,16 @@ export async function createArtifact(run: RunView, kind: ArtifactKind, input: un
   return toView(row);
 }
 
+const MAX_ARTIFACT_ATTEMPTS = 5;
+
 export async function claimArtifact(leaseSeconds: number): Promise<ArtifactRow | null> {
   // Artifacts reuse updated_at as their lease: a running row untouched for the
   // lease period belongs to a worker that died.
   const rows = await queryRows<{ id: string }>(sql`
-    UPDATE artifacts SET status = 'running', updated_at = now()
+    UPDATE artifacts SET status = 'running', attempts = attempts + 1, updated_at = now()
     WHERE id = (
       SELECT id FROM artifacts
-      WHERE status = 'queued'
+      WHERE (status = 'queued' AND (available_at IS NULL OR available_at < now()))
          OR (status = 'running' AND updated_at < now() - make_interval(secs => ${leaseSeconds}))
       ORDER BY created_at
       FOR UPDATE SKIP LOCKED
@@ -159,10 +161,19 @@ export async function processArtifact(row: ArtifactRow) {
       throw new Error("This tool is not available yet.");
     }
   } catch (err) {
+    // Busy free models are a wait, not a failure. The job goes back on the queue
+    // and the person sees when it will try again; nothing needs clicking.
+    if (err instanceof CapacityError && row.attempts < MAX_ARTIFACT_ATTEMPTS) {
+      const retryIn = Math.min(Math.max(err.retryInMs ?? 60_000, 20_000), 10 * 60_000) * row.attempts;
+      const detail = `The free models are busy. Trying again in about ${Math.ceil(retryIn / 1000)}s; this continues on its own.`;
+      console.warn(`[artifacts] ${row.kind} ${row.id} requeued after capacity error (attempt ${row.attempts})`);
+      await finish({ status: "queued", progress: detail, availableAt: new Date(Date.now() + Math.min(retryIn, 15 * 60_000)) });
+      return;
+    }
     console.error(`[artifacts] ${row.kind} ${row.id} failed:`, err);
     const message =
       err instanceof CapacityError
-        ? "The free writing models are at capacity. Try again in a few minutes."
+        ? "The free models stayed busy for too long. Try again in a few minutes."
         : err instanceof Error && /not available yet|missing its/.test(err.message)
           ? err.message
           : "Generation failed on our side. Try again.";

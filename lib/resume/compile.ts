@@ -80,6 +80,19 @@ export function findCompiler(): Promise<Compiler | null> {
   return found;
 }
 
+/**
+ * Tectonic runs XeTeX, and most resume templates are written for pdfLaTeX (what
+ * Overleaf uses). The pdfTeX-only glyph-to-unicode lines are guarded so they are
+ * skipped under XeTeX, which writes extractable Unicode text on its own, so ATS
+ * parsing is unaffected. Only the compiled copy changes; the .tex a person
+ * downloads stays exactly as rendered, for Overleaf.
+ */
+export function forXeTeX(source: string): string {
+  return source
+    .replace(/^([ \t]*)\\input\s*\{glyphtounicode\}/gm, "$1\\ifdefined\\pdfgentounicode\\input{glyphtounicode}\\fi")
+    .replace(/^([ \t]*)\\pdfgentounicode\s*=\s*1/gm, "$1\\ifdefined\\pdfgentounicode\\pdfgentounicode=1\\fi");
+}
+
 /** The last useful lines of a TeX log: the error, not the package loading chatter. */
 function tailOfLog(log: string): string {
   const lines = log.split(/\r?\n/).filter((l) => l.trim());
@@ -98,7 +111,7 @@ export async function compileTex(source: string): Promise<CompileResult> {
 
   const dir = await mkdtemp(path.join(tmpdir(), "resume-"));
   try {
-    await writeFile(path.join(dir, "resume.tex"), source, "utf8");
+    await writeFile(path.join(dir, "resume.tex"), compiler.kind === "tectonic" ? forXeTeX(source) : source, "utf8");
     const args =
       compiler.kind === "tectonic"
         ? ["--untrusted", "--chatter", "minimal", "--outdir", dir, "resume.tex"]

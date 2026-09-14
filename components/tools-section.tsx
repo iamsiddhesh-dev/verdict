@@ -145,7 +145,7 @@ function Pending({ artifact }: { artifact: ArtifactView }) {
   return (
     <div className="space-y-3" aria-live="polite">
       <p className="text-[14px] text-ink-2">
-        {artifact.status === "queued" ? "Queued." : (artifact.progress ?? "Writing and checking the draft. This can take a minute on the free models.")}
+        {artifact.progress ?? (artifact.status === "queued" ? "Queued." : "Writing and checking the draft. This can take a minute on the free models.")}
       </p>
       <Skeleton className="h-4 w-3/4" />
       <Skeleton className="h-4 w-full" />

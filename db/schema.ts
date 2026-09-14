@@ -9,6 +9,7 @@
 
 import { sql } from "drizzle-orm";
 import {
+  customType,
   date,
   integer,
   jsonb,
@@ -19,8 +20,18 @@ import {
   uuid,
 } from "drizzle-orm/pg-core";
 
+const bytea = customType<{ data: Buffer; driverData: Buffer | Uint8Array }>({
+  dataType: () => "bytea",
+  fromDriver: (v) => (Buffer.isBuffer(v) ? v : Buffer.from(v)),
+});
+
+// The id is the Supabase Auth user id.
 export const users = pgTable("users", {
   id: uuid("id").primaryKey(),
+  email: text("email"),
+  displayName: text("display_name"),
+  avatarUrl: text("avatar_url"),
+  lastSeenAt: timestamp("last_seen_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -30,6 +41,8 @@ export const profiles = pgTable("profiles", {
     .references(() => users.id, { onDelete: "cascade" }),
   resumeText: text("resume_text"),
   resumeFilename: text("resume_filename"),
+  resumeFile: bytea("resume_file"),
+  resumeMime: text("resume_mime"),
   facts: jsonb("facts"),
   githubUrl: text("github_url"),
   linkedinUrl: text("linkedin_url"),
@@ -77,6 +90,8 @@ export const artifacts = pgTable("artifacts", {
   input: jsonb("input"),
   content: jsonb("content"),
   progress: text("progress"),
+  attempts: integer("attempts").notNull().default(0),
+  availableAt: timestamp("available_at", { withTimezone: true }),
   error: text("error"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),

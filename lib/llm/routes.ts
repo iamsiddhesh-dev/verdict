@@ -102,10 +102,16 @@ export const TASK_ROUTES: Record<LlmTask, ModelStep[]> = {
   // Rephrasing resume bullets is writing, but the answer is a large structured
   // selection over the whole resume, so the 120b models that hold big schemas
   // come straight after Gemini instead of after the smaller writing models.
+  // Flash-Lite has its own daily budget and is far less often overloaded than
+  // Flash, so a Flash 503 ("high demand") falls to another Gemini before leaving
+  // Google. Both Groq models fit here because the tailoring prompt is sized to
+  // stay under Groq's 8,000 tokens per minute.
   tailor: [
     { provider: "google", model: GEMINI_FLASH, preferWaitMs: 20_000 },
+    { provider: "google", model: GEMINI_FLASH_LITE },
     { provider: "groq", model: GPT_OSS_120B_GROQ, preferWaitMs: 15_000 },
     { provider: "mistral", model: MISTRAL_MEDIUM },
+    { provider: "groq", model: GPT_OSS_20B_GROQ },
     { provider: "cerebras", model: GPT_OSS_120B_CEREBRAS },
   ],
   vision: [
@@ -161,6 +167,7 @@ export const EXPECTED_OUTPUT_TOKENS: Record<LlmTask, number> = {
   companyType: 400,
   score: 2_000,
   writing: 1_800,
-  tailor: 3_500,
+  // ~14 bullets of JSON plus low-effort reasoning. Measured replies run 1,100 to 1,800.
+  tailor: 2_400,
   vision: 1_500,
 };

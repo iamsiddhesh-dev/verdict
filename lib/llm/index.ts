@@ -179,7 +179,11 @@ export function looksLikeServerTrouble(err: unknown): boolean {
  * only delays the fallback.
  */
 function looksDailyExhausted(err: unknown): boolean {
-  return statusOf(err) === 402 || /per.?day|daily|requests per day|RPD|PerDay|payment required/i.test(messageOf(err));
+  // A limit header of 0 means the account has no access to this model at all
+  // (Mistral answers "limit-req-minute=0" until its free plan is activated).
+  // Retrying every 20 seconds cannot succeed.
+  const zeroLimit = Object.entries(headersOf(err) ?? {}).some(([h, v]) => /^x-ratelimit-limit/i.test(h) && String(v).trim() === "0");
+  return zeroLimit || statusOf(err) === 402 || /per.?day|daily|requests per day|RPD|PerDay|payment required/i.test(messageOf(err));
 }
 
 function isKeyRejected(err: unknown): boolean {
@@ -327,6 +331,12 @@ export async function generateStructured<S extends z.ZodTypeAny>(
       }
       throw err;
     }
+  }
+  // Every attempt was a busy or rate-limited provider: that is a capacity
+  // problem with an honest message and a retry, not a crash with Google's text.
+  if (lastErr && (looksLikeRateLimit(lastErr) || looksLikeServerTrouble(lastErr))) {
+    const soonest = Math.min(...cands.map((c) => c.lane.waitMs(tokens)).filter((w) => w !== NEVER), 60_000);
+    throw new CapacityError(`The free models for "${params.task}" are busy right now.`, Number.isFinite(soonest) ? Math.max(soonest, 15_000) : 60_000);
   }
   throw lastErr ?? new Error(`"${params.task}" failed after ${MAX_ATTEMPTS} attempts`);
 }

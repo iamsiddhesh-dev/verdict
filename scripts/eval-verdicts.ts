@@ -36,6 +36,7 @@ const facts = await parseResumeText(text);
 const profile = {
   userId: "00000000-0000-0000-0000-000000000000",
   resumeFilename: null,
+    hasResumeFile: false,
   resumeText: text,
   facts,
   githubUrl: null,

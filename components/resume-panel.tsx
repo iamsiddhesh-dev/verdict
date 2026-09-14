@@ -71,7 +71,7 @@ export function ResumePanel({
 
       {pending && artifact && (
         <div className="space-y-3" aria-live="polite">
-          <p className="text-[14px] text-ink-2">{artifact.status === "queued" ? "Queued." : (artifact.progress ?? "Starting.")}</p>
+          <p className="text-[14px] text-ink-2">{artifact.progress ?? (artifact.status === "queued" ? "Queued." : "Starting.")}</p>
           <Skeleton className="h-4 w-2/3" />
           <Skeleton className="h-4 w-full" />
           <Skeleton className="h-4 w-5/6" />

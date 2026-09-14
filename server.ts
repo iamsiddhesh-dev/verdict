@@ -4,10 +4,13 @@
 // a long-lived process (serverless functions are killed mid-run), and the
 // WebSocket needs a real HTTP server to upgrade from.
 
-import { createServer } from "node:http";
+import { createServer, type IncomingMessage } from "node:http";
+import type { Duplex } from "node:stream";
 import next from "next";
 import { WebSocketServer, type WebSocket } from "ws";
+import { userIdFromCookieHeader } from "@/lib/auth-claims";
 import { getDb } from "@/lib/db";
+import { authConfigured } from "@/lib/supabase/config";
 import { bus, type RunEvent } from "@/lib/events";
 import { startWorker } from "@/lib/pipeline/worker";
 import { newSessionValue, readCookie, SESSION_COOKIE, sessionCookieHeader, verifySessionValue } from "@/lib/session";
@@ -23,12 +26,13 @@ const handle = app.getRequestHandler();
 await app.prepare();
 await getDb();
 
+// Accounts come from Supabase Auth. Only local development without Supabase keys
+// hands out the signed anonymous cookie, so the app runs with zero setup.
+const localSessions = !authConfigured() && dev;
+if (!authConfigured() && !dev) throw new Error("Sign-in is not configured: set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY.");
+
 const server = createServer((req, res) => {
-  // Every visitor gets an anonymous session before Next.js sees the request, so
-  // route handlers and server components can rely on the cookie existing. The
-  // new value is also written into this request's own headers, so the very
-  // first request sees it too.
-  const current = verifySessionValue(readCookie(req.headers.cookie, SESSION_COOKIE));
+  const current = localSessions ? verifySessionValue(readCookie(req.headers.cookie, SESSION_COOKIE)) : "account";
   if (!current && !req.url?.startsWith("/_next/")) {
     const { value } = newSessionValue();
     res.setHeader("Set-Cookie", sessionCookieHeader(value));
@@ -50,12 +54,19 @@ server.on("upgrade", (req, socket, head) => {
     } else socket.destroy();
     return;
   }
-  const userId = verifySessionValue(readCookie(req.headers.cookie, SESSION_COOKIE));
-  if (!userId) {
-    socket.write("HTTP/1.1 401 Unauthorized\r\n\r\n");
-    socket.destroy();
-    return;
-  }
+  void userIdFromCookieHeader(req.headers.cookie)
+    .catch(() => null)
+    .then((userId) => {
+      if (!userId) {
+        socket.write("HTTP/1.1 401 Unauthorized\r\n\r\n");
+        socket.destroy();
+        return;
+      }
+      acceptSocket(req, socket, head, userId);
+    });
+});
+
+function acceptSocket(req: IncomingMessage, socket: Duplex, head: Buffer, userId: string) {
   wss.handleUpgrade(req, socket, head, (ws) => {
     let set = socketsByUser.get(userId);
     if (!set) socketsByUser.set(userId, (set = new Set()));
@@ -68,7 +79,7 @@ server.on("upgrade", (req, socket, head) => {
     });
     ws.send(JSON.stringify({ type: "hello" }));
   });
-});
+}
 
 bus().on("run-event", (event: RunEvent) => {
   const sockets = socketsByUser.get(event.userId);

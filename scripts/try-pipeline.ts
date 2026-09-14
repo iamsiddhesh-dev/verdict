@@ -26,6 +26,7 @@ console.log(`resume parsed in ${Date.now() - t}ms: ${facts.name}, ${facts.yearsO
 const profile = {
   userId: "00000000-0000-0000-0000-000000000000",
   resumeFilename: null,
+    hasResumeFile: false,
   resumeText: text,
   facts,
   githubUrl: null,

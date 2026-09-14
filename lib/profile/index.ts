@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { profiles } from "@/db/schema";
 import { getDb } from "@/lib/db";
 import type { ResumeFacts } from "./resume";
@@ -8,6 +8,7 @@ export type { ResumeFacts } from "./resume";
 export interface Profile {
   userId: string;
   resumeFilename: string | null;
+  hasResumeFile: boolean;
   resumeText: string | null;
   facts: ResumeFacts | null;
   githubUrl: string | null;
@@ -20,11 +21,29 @@ export interface Profile {
 
 export async function loadProfile(userId: string): Promise<Profile | null> {
   const db = await getDb();
-  const [row] = await db.select().from(profiles).where(eq(profiles.userId, userId)).limit(1);
+  // Every column except the stored file, which only the download route reads.
+  const [row] = await db
+    .select({
+      userId: profiles.userId,
+      resumeFilename: profiles.resumeFilename,
+      hasResumeFile: sql<boolean>`${profiles.resumeFile} IS NOT NULL`,
+      resumeText: profiles.resumeText,
+      facts: profiles.facts,
+      githubUrl: profiles.githubUrl,
+      linkedinUrl: profiles.linkedinUrl,
+      portfolioUrl: profiles.portfolioUrl,
+      preferences: profiles.preferences,
+      masterTex: profiles.masterTex,
+      confirmedAt: profiles.confirmedAt,
+    })
+    .from(profiles)
+    .where(eq(profiles.userId, userId))
+    .limit(1);
   if (!row) return null;
   return {
     userId: row.userId,
     resumeFilename: row.resumeFilename,
+    hasResumeFile: Boolean(row.hasResumeFile),
     resumeText: row.resumeText,
     facts: (row.facts as ResumeFacts | null) ?? null,
     githubUrl: row.githubUrl,
