@@ -13,6 +13,8 @@
     "eval:verdicts": "node --env-file-if-exists=.env node_modules/tsx/dist/cli.mjs scripts/eval-verdicts.ts",
     "try:resume": "node --env-file-if-exists=.env node_modules/tsx/dist/cli.mjs scripts/try-resume.ts",
     "probe:keys": "node --env-file-if-exists=.env node_modules/tsx/dist/cli.mjs scripts/probe-keys.ts",
+    "probe:db": "node --env-file-if-exists=.env node_modules/tsx/dist/cli.mjs scripts/probe-db.ts",
+    "copy:local": "node --env-file-if-exists=.env node_modules/tsx/dist/cli.mjs scripts/copy-local-to-db.ts",
     "try:compile": "node node_modules/tsx/dist/cli.mjs scripts/try-compile.ts"
   },
   "dependencies": {
