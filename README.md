@@ -18,8 +18,8 @@ Free to use. Free to run. Built entirely on free tiers.
 
 ## Why
 
-Most "AI job tools" write a cover letter for anything you paste. Verdict does the step that comes first:
-telling you honestly whether the role is worth your time. A missing core requirement (the main language the
+Verdict starts with the step that comes before writing anything: telling you honestly whether the role is
+worth your time. A missing core requirement (the main language the
 team works in, a years-of-experience bar, a location restriction) is a skip, however good the rest reads.
 The writing tools only unlock after a positive verdict.
 
