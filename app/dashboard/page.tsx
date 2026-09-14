@@ -1,14 +1,16 @@
+import type { Metadata } from "next";
 import { AppShell } from "@/components/app-shell";
 import { Dashboard, type RunRow } from "@/components/dashboard";
-import { currentUserId } from "@/lib/auth";
+import { currentUser } from "@/lib/auth";
 import { listRuns } from "@/lib/pipeline/runs";
 import { loadProfile, profileIsReady } from "@/lib/profile";
 
 export const dynamic = "force-dynamic";
+export const metadata: Metadata = { title: "Jobs" };
 
 export default async function DashboardPage() {
-  const userId = await currentUserId();
-  const [runs, profile] = userId ? await Promise.all([listRuns(userId), loadProfile(userId)]) : [[], null];
+  const user = await currentUser();
+  const [runs, profile] = user ? await Promise.all([listRuns(user.id), loadProfile(user.id)]) : [[], null];
   const rows: RunRow[] = runs.map((r) => ({
     id: r.id,
     status: r.status,
@@ -20,9 +22,10 @@ export default async function DashboardPage() {
     inputUrl: r.inputUrl,
     createdAt: r.createdAt,
   }));
+  const fullName = profile?.facts?.name ?? user?.name ?? null;
   return (
     <AppShell active="jobs">
-      <Dashboard initialRuns={rows} profileReady={profileIsReady(profile)} />
+      <Dashboard initialRuns={rows} profileReady={profileIsReady(profile)} firstName={fullName?.trim().split(/\s+/)[0] ?? null} />
     </AppShell>
   );
 }

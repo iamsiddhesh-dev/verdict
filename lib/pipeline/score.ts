@@ -13,10 +13,11 @@ import { profileBlock, type Profile, type ResumeFacts } from "@/lib/profile";
 import type { Verification } from "@/lib/verify";
 import type { ReadJob } from "./read";
 
-export type Verdict = "apply" | "borderline" | "skip";
+import { APPLY_AT, BORDERLINE_AT, WEIGHTS } from "./weights";
 
-export const APPLY_AT = 70;
-export const BORDERLINE_AT = 55;
+export { APPLY_AT, BORDERLINE_AT, WEIGHTS };
+
+export type Verdict = "apply" | "borderline" | "skip";
 
 // The model does not produce the final number. It rates three things against
 // fixed anchors and marks every requirement, and code combines them. A single
@@ -74,8 +75,6 @@ export interface Blocker {
   kind: "years" | "enrollment" | "must_have" | "location" | "hard_stop" | "not_a_job";
   message: string;
 }
-
-export const WEIGHTS = { overlap: 0.5, mustCoverage: 0.3, seniority: 0.1, location: 0.1 } as const;
 
 /** Share of must-haves met, counting partial as half. Falls back to overlap when the posting states none. */
 export function mustCoverage(requirements: ScoreOutput["requirements"], fallback: number): number {

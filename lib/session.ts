@@ -58,8 +58,8 @@ export function verifySessionValue(value: string | undefined | null): string | n
   return id;
 }
 
-export function newSessionValue(): { id: string; value: string } {
-  const id = randomUUID();
+export function newSessionValue(forId?: string): { id: string; value: string } {
+  const id = forId && UUID_RX.test(forId) ? forId : randomUUID();
   return { id, value: `${id}.${sign(id)}` };
 }
 

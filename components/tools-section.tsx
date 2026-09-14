@@ -1,13 +1,13 @@
 "use client";
 
-import { AlertTriangle, FileText, Lock, MessageSquareText, Plus, Send, Trash2, Unlock } from "lucide-react";
+import { FileText, Lock, MessageSquareText, Plus, Send, Trash2, TriangleAlert, Unlock } from "lucide-react";
 import { useState } from "react";
 import type { ArtifactKind, ArtifactView } from "@/lib/pipeline/artifacts";
 import type { RunView } from "@/lib/pipeline/runs";
-import { ResumePanel } from "./resume-panel";
 import type { Issue } from "@/lib/writing/honesty";
 import type { AnswersContent, OutreachContent } from "@/lib/writing/tools";
-import { Button, Callout, Card, CopyButton, Input, Label, Skeleton, Textarea, cx } from "./ui/primitives";
+import { ResumePanel } from "./resume-panel";
+import { Button, Callout, CopyButton, Input, Label, Skeleton, Textarea, cx } from "./ui/primitives";
 import { api } from "./use-live";
 
 type Gate = "locked" | "unlockable" | "open";
@@ -16,15 +16,15 @@ function gateFor(run: RunView): { gate: Gate; reason: string } {
   if (run.verification?.hardStops.length) return { gate: "locked", reason: "Locked because the posting asks for money or documents before an offer." };
   if (run.verdict === "apply") return { gate: "open", reason: "" };
   if (run.verdict === "borderline") {
-    return run.unlockedAt ? { gate: "open", reason: "" } : { gate: "unlockable", reason: "Borderline fit. Unlock if you still want to apply." };
+    return run.unlockedAt ? { gate: "open", reason: "" } : { gate: "unlockable", reason: "This is a borderline fit. If you still want to apply, unlock the tools." };
   }
-  return { gate: "locked", reason: "Unlocks when the verdict is Apply." };
+  return { gate: "locked", reason: "The verdict is skip, so the writing tools stay locked for this role." };
 }
 
 const TOOLS: Array<{ kind: ArtifactKind; title: string; blurb: string; icon: typeof FileText }> = [
-  { kind: "answers", title: "Application answers", blurb: "Why you, why them, and any questions from the form.", icon: MessageSquareText },
-  { kind: "outreach", title: "Outreach", blurb: "LinkedIn note, X message and a cold email.", icon: Send },
-  { kind: "resume", title: "Tailored resume", blurb: "A one-page .tex and PDF fitted to this role.", icon: FileText },
+  { kind: "answers", title: "Answers", blurb: "Why you, why them, and questions from the form.", icon: MessageSquareText },
+  { kind: "outreach", title: "Outreach", blurb: "LinkedIn note, X message and cold email.", icon: Send },
+  { kind: "resume", title: "Resume", blurb: "Your resume, tailored and fitted to one page.", icon: FileText },
 ];
 
 export function ToolsSection({
@@ -42,80 +42,87 @@ export function ToolsSection({
   profileReady: boolean;
 }) {
   const { gate, reason } = gateFor(run);
-  const [selected, setSelected] = useState<ArtifactKind | null>(null);
+  const [tab, setTab] = useState<ArtifactKind>("answers");
   const [unlocking, setUnlocking] = useState(false);
 
   return (
-    <section aria-labelledby="tools-heading" className="space-y-4">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <h2 id="tools-heading" className="text-[24px] leading-8 font-semibold tracking-[-0.01em] text-ink">
-          Apply
-        </h2>
-        {gate === "unlockable" && (
-          <Button
-            variant="secondary"
-            size="sm"
-            icon={<Unlock className="size-4" />}
-            loading={unlocking}
-            onClick={async () => {
-              setUnlocking(true);
-              try {
-                const { run: next } = await api<{ run: RunView }>(`/api/runs/${run.id}/action`, { method: "POST", json: { action: "unlock" } });
-                onRunChange(next);
-              } finally {
-                setUnlocking(false);
-              }
-            }}
-          >
-            Generate anyway
-          </Button>
+    <section aria-labelledby="tools-heading" className="overflow-hidden rounded-xl border border-line bg-base shadow-[var(--shadow-sm)]">
+      <div className="flex flex-wrap items-center justify-between gap-3 px-6 pt-5">
+        <div>
+          <h2 id="tools-heading" className="text-[16px] font-semibold text-ink">
+            Apply
+          </h2>
+          <p className="text-[13px] text-muted">Everything written here uses only what your resume shows.</p>
+        </div>
+        {gate !== "open" && (
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-sunken px-2.5 py-1 text-[12px] font-medium text-ink-2">
+            <Lock className="size-3.5" aria-hidden /> Locked
+          </span>
         )}
       </div>
 
-      <div className="grid gap-3 md:grid-cols-3">
+      <div role="tablist" aria-label="Tools" className="mt-4 flex gap-1 overflow-x-auto border-b border-line px-4">
         {TOOLS.map((tool) => {
           const Icon = tool.icon;
           const latest = artifacts.find((a) => a.kind === tool.kind);
-          const open = gate === "open";
-          const isSelected = selected === tool.kind;
+          const selected = tab === tool.kind;
           return (
             <button
               key={tool.kind}
-              type="button"
-              disabled={!open}
-              aria-pressed={isSelected}
-              onClick={() => setSelected(isSelected ? null : tool.kind)}
+              role="tab"
+              id={`tab-${tool.kind}`}
+              aria-selected={selected}
+              aria-controls={`panel-${tool.kind}`}
+              onClick={() => setTab(tool.kind)}
               className={cx(
-                "flex h-full flex-col items-start gap-3 rounded-md border p-5 text-left transition-colors",
-                open ? "bg-base hover:border-accent-line" : "cursor-not-allowed bg-surface",
-                isSelected ? "border-accent ring-1 ring-accent" : "border-line",
+                "relative -mb-px flex h-11 shrink-0 items-center gap-2 border-b-2 px-3 text-[14px] font-medium transition-colors",
+                selected ? "border-ink text-ink" : "border-transparent text-ink-2 hover:text-ink",
               )}
             >
-              <div className="flex w-full items-center justify-between">
-                <span className={cx("flex size-9 items-center justify-center rounded-md", open ? "bg-accent-subtle text-accent" : "bg-sunken text-muted")}>
-                  {open ? <Icon className="size-5" aria-hidden /> : <Lock className="size-4" aria-hidden />}
-                </span>
-                {latest && <StatusDot status={latest.status} />}
-              </div>
-              <div>
-                <p className={cx("text-[16px] font-semibold", open ? "text-ink" : "text-ink-2")}>{tool.title}</p>
-                <p className="mt-1 text-[14px] leading-5 text-ink-2">{tool.blurb}</p>
-              </div>
-              {!open && <p className="mt-auto text-[13px] leading-5 text-muted">{reason}</p>}
+              <Icon className="size-4" aria-hidden />
+              {tool.title}
+              {latest && <StatusDot status={latest.status} />}
             </button>
           );
         })}
       </div>
 
-      {selected === "answers" && gate === "open" && (
-        <AnswersPanel run={run} artifact={artifacts.find((a) => a.kind === "answers") ?? null} onCreated={onArtifactsChange} />
-      )}
-      {selected === "outreach" && gate === "open" && (
-        <OutreachPanel run={run} artifact={artifacts.find((a) => a.kind === "outreach") ?? null} onCreated={onArtifactsChange} />
-      )}
-      {selected === "resume" && gate === "open" && (
-        <ResumePanel run={run} artifact={artifacts.find((a) => a.kind === "resume") ?? null} onCreated={onArtifactsChange} hasMasterTex={hasMasterTex} />
-      )}
+      <div role="tabpanel" id={`panel-${tab}`} aria-labelledby={`tab-${tab}`} className="p-6">
+        {gate !== "open" ? (
+          <div className="flex flex-col items-center px-4 py-8 text-center">
+            <span className="flex size-11 items-center justify-center rounded-full bg-sunken">
+              <Lock className="size-5 text-ink-2" aria-hidden />
+            </span>
+            <p className="mt-4 text-[15px] font-semibold text-ink">{TOOLS.find((t) => t.kind === tab)?.blurb}</p>
+            <p className="mt-1 max-w-sm text-[14px] leading-5 text-ink-2">{reason}</p>
+            {gate === "unlockable" && (
+              <Button
+                className="mt-5"
+                variant="secondary"
+                icon={<Unlock className="size-4" />}
+                loading={unlocking}
+                onClick={async () => {
+                  setUnlocking(true);
+                  try {
+                    const { run: next } = await api<{ run: RunView }>(`/api/runs/${run.id}/action`, { method: "POST", json: { action: "unlock" } });
+                    onRunChange(next);
+                  } finally {
+                    setUnlocking(false);
+                  }
+                }}
+              >
+                Unlock anyway
+              </Button>
+            )}
+          </div>
+        ) : tab === "answers" ? (
+          <AnswersPanel run={run} artifact={artifacts.find((a) => a.kind === "answers") ?? null} onCreated={onArtifactsChange} />
+        ) : tab === "outreach" ? (
+          <OutreachPanel run={run} artifact={artifacts.find((a) => a.kind === "outreach") ?? null} onCreated={onArtifactsChange} />
+        ) : (
+          <ResumePanel run={run} artifact={artifacts.find((a) => a.kind === "resume") ?? null} onCreated={onArtifactsChange} hasMasterTex={hasMasterTex} />
+        )}
+      </div>
     </section>
   );
 }
@@ -123,14 +130,22 @@ export function ToolsSection({
 function StatusDot({ status }: { status: ArtifactView["status"] }) {
   const label = { queued: "Queued", running: "Writing", done: "Ready", failed: "Failed" }[status];
   return (
-    <span className={cx("text-[12px] font-medium", status === "done" ? "text-apply" : status === "failed" ? "text-skip" : "text-accent")}>{label}</span>
+    <span
+      title={label}
+      className={cx(
+        "size-2 rounded-full",
+        status === "done" ? "bg-apply" : status === "failed" ? "bg-skip" : "animate-pulse-soft bg-accent",
+      )}
+    >
+      <span className="sr-only">{label}</span>
+    </span>
   );
 }
 
-function IssuesNote({ issues }: { issues: Issue[] }) {
+export function IssuesNote({ issues }: { issues: Issue[] }) {
   if (!issues.length) return null;
   return (
-    <Callout tone="borderline" icon={<AlertTriangle className="size-4" />} title="Check these before sending">
+    <Callout tone="borderline" icon={<TriangleAlert className="size-4" />} title="Check these before sending">
       <p>The draft still broke these rules after three attempts, so it is shown with the problems rather than hidden:</p>
       <ul className="mt-2 list-disc space-y-1 pl-5">
         {issues.map((i) => (
@@ -141,15 +156,16 @@ function IssuesNote({ issues }: { issues: Issue[] }) {
   );
 }
 
-function Pending({ artifact }: { artifact: ArtifactView }) {
+export function Pending({ artifact, idle }: { artifact: ArtifactView; idle?: string }) {
   return (
-    <div className="space-y-3" aria-live="polite">
-      <p className="text-[14px] text-ink-2">
-        {artifact.progress ?? (artifact.status === "queued" ? "Queued." : "Writing and checking the draft. This can take a minute on the free models.")}
+    <div className="space-y-3 rounded-lg border border-line bg-surface p-5" aria-live="polite">
+      <p className="flex items-center gap-2 text-[14px] text-ink-2">
+        <span className="size-2 animate-pulse-soft rounded-full bg-accent" aria-hidden />
+        {artifact.progress ?? (artifact.status === "queued" ? "Queued." : (idle ?? "Writing and checking the draft. This can take a minute on the free models."))}
       </p>
-      <Skeleton className="h-4 w-3/4" />
-      <Skeleton className="h-4 w-full" />
-      <Skeleton className="h-4 w-5/6" />
+      <Skeleton className="h-3.5 w-3/4" />
+      <Skeleton className="h-3.5 w-full" />
+      <Skeleton className="h-3.5 w-5/6" />
     </div>
   );
 }
@@ -190,27 +206,22 @@ function AnswersPanel({ run, artifact, onCreated }: { run: RunView; artifact: Ar
   };
 
   return (
-    <Card className="space-y-6 bg-base">
-      <div>
-        <h3 className="text-[20px] leading-7 font-semibold text-ink">Application answers</h3>
-        <p className="mt-1 text-[14px] text-ink-2">Paste questions from the application form. Answers use only what is in your profile.</p>
-      </div>
-
+    <div className="space-y-6">
       <div className="space-y-3">
-        <label className="flex items-center gap-2 text-[14px] text-ink">
-          <input type="checkbox" checked={includeStandard} onChange={(e) => setIncludeStandard(e.target.checked)} className="size-4 accent-[var(--color-accent)]" />
+        <label className="flex items-center gap-2.5 text-[14px] text-ink">
+          <input type="checkbox" checked={includeStandard} onChange={(e) => setIncludeStandard(e.target.checked)} className="size-4 accent-[var(--color-ink)]" />
           Include &ldquo;Why are you a good fit&rdquo; and &ldquo;Why this company&rdquo;
         </label>
 
         {questions.length > 0 && (
           <ul className="space-y-2">
             {questions.map((q, i) => (
-              <li key={`${q.question}-${i}`} className="flex items-start gap-3 rounded-sm border border-line bg-surface px-3 py-2 text-[14px]">
+              <li key={`${q.question}-${i}`} className="flex items-start gap-3 rounded-md border border-line bg-surface px-3 py-2.5 text-[14px]">
                 <span className="min-w-0 flex-1 text-ink">
                   {q.question}
                   {q.maxChars && <span className="ml-2 font-mono text-[12px] text-muted">max {q.maxChars}</span>}
                 </span>
-                <button type="button" aria-label="Remove question" className="text-muted hover:text-skip" onClick={() => setQuestions((all) => all.filter((_, j) => j !== i))}>
+                <button type="button" aria-label="Remove question" className="rounded-sm text-muted hover:text-skip" onClick={() => setQuestions((all) => all.filter((_, j) => j !== i))}>
                   <Trash2 className="size-4" />
                 </button>
               </li>
@@ -218,7 +229,7 @@ function AnswersPanel({ run, artifact, onCreated }: { run: RunView; artifact: Ar
           </ul>
         )}
 
-        <div className="flex flex-col gap-2 sm:flex-row">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
           <div className="flex-1">
             <Label htmlFor="new-question">Add a question from the form</Label>
             <Input
@@ -234,19 +245,19 @@ function AnswersPanel({ run, artifact, onCreated }: { run: RunView; artifact: Ar
               placeholder="What interests you about working with us?"
             />
           </div>
-          <div className="sm:w-32">
+          <div className="sm:w-28">
             <Label htmlFor="new-limit" hint="optional">
-              Char limit
+              Limit
             </Label>
             <Input id="new-limit" inputMode="numeric" value={draftLimit} onChange={(e) => setDraftLimit(e.target.value.replace(/\D/g, ""))} placeholder="500" />
           </div>
-          <Button type="button" variant="secondary" className="sm:mt-6.5" icon={<Plus className="size-4" />} onClick={addQuestion}>
+          <Button type="button" variant="secondary" icon={<Plus className="size-4" />} onClick={addQuestion}>
             Add
           </Button>
         </div>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <Button
           loading={busy || Boolean(pending)}
           disabled={!includeStandard && questions.length === 0}
@@ -267,15 +278,15 @@ function AnswersPanel({ run, artifact, onCreated }: { run: RunView; artifact: Ar
       {artifact?.status === "failed" && <Callout tone="skip">{artifact.error}</Callout>}
 
       {content && (
-        <div className="space-y-4 border-t border-line pt-5">
+        <div className="space-y-5 border-t border-line pt-6">
           <IssuesNote issues={artifact!.issues} />
           {content.answers.map((a) => (
             <EditableAnswer key={`${artifact!.id}-${a.question}`} question={a.question} answer={a.answer} maxChars={a.maxChars} />
           ))}
-          <p className="text-[12px] text-muted">Written by {artifact!.model?.split("/").slice(1).join("/")}. Edits here are not saved; copy when ready.</p>
+          <p className="text-[12px] text-muted">Written by {artifact!.model?.split("/").slice(1).join("/")}. Edits here are not saved, so copy when ready.</p>
         </div>
       )}
-    </Card>
+    </div>
   );
 }
 
@@ -289,9 +300,9 @@ function EditableAnswer({ question, answer, maxChars }: { question: string; answ
         <CopyButton text={text} />
       </div>
       <Textarea value={text} onChange={(e) => setText(e.target.value)} className="min-h-32" aria-label={question} invalid={over} />
-      <p className={cx("mt-1 text-right font-mono text-[12px]", over ? "text-skip" : "text-muted")}>
+      <p className={cx("mt-1 text-right font-mono text-[12px] tabular-nums", over ? "text-skip" : "text-muted")}>
         {text.length}
-        {maxChars ? ` / ${maxChars}` : ""} characters
+        {maxChars ? ` / ${maxChars}` : ""}
       </p>
     </div>
   );
@@ -306,11 +317,8 @@ function OutreachPanel({ run, artifact, onCreated }: { run: RunView; artifact: A
   const pending = artifact && (artifact.status === "queued" || artifact.status === "running");
 
   return (
-    <Card className="space-y-6 bg-base">
-      <div>
-        <h3 className="text-[20px] leading-7 font-semibold text-ink">Outreach</h3>
-        <p className="mt-1 text-[14px] text-ink-2">Messages work best addressed to a named person, such as the founder or the hiring manager.</p>
-      </div>
+    <div className="space-y-6">
+      <p className="text-[14px] text-ink-2">Messages land better addressed to a named person, such as a founder or the hiring manager.</p>
       <div className="grid gap-3 sm:grid-cols-2">
         <div>
           <Label htmlFor="contact-name" hint="optional">
@@ -325,7 +333,7 @@ function OutreachPanel({ run, artifact, onCreated }: { run: RunView; artifact: A
           <Input id="contact-role" value={contactRole} onChange={(e) => setContactRole(e.target.value)} placeholder="Founder, CTO" />
         </div>
       </div>
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <Button loading={busy || Boolean(pending)} onClick={() => create({ kind: "outreach", contactName: contactName || null, contactRole: contactRole || null })}>
           {content ? "Write again" : "Write messages"}
         </Button>
@@ -336,9 +344,9 @@ function OutreachPanel({ run, artifact, onCreated }: { run: RunView; artifact: A
       {artifact?.status === "failed" && <Callout tone="skip">{artifact.error}</Callout>}
 
       {content && (
-        <div className="space-y-4 border-t border-line pt-5">
+        <div className="space-y-4 border-t border-line pt-6">
           <IssuesNote issues={artifact!.issues} />
-          <div role="tablist" className="inline-flex rounded-md border border-line bg-surface p-1">
+          <div role="tablist" aria-label="Channel" className="inline-flex rounded-md border border-line bg-surface p-0.5">
             {(
               [
                 ["linkedin", "LinkedIn"],
@@ -351,7 +359,7 @@ function OutreachPanel({ run, artifact, onCreated }: { run: RunView; artifact: A
                 role="tab"
                 aria-selected={tab === key}
                 onClick={() => setTab(key)}
-                className={cx("h-8 rounded-sm px-3 text-[14px] font-medium", tab === key ? "bg-base text-ink shadow-[var(--shadow-sm)]" : "text-ink-2 hover:text-ink")}
+                className={cx("h-8 rounded-[5px] px-3 text-[13px] font-medium", tab === key ? "bg-base text-ink shadow-[var(--shadow-sm)]" : "text-ink-2 hover:text-ink")}
               >
                 {label}
               </button>
@@ -367,7 +375,7 @@ function OutreachPanel({ run, artifact, onCreated }: { run: RunView; artifact: A
           )}
         </div>
       )}
-    </Card>
+    </div>
   );
 }
 
@@ -382,7 +390,7 @@ function Message({ text: initial, limit, label, rows }: { text: string; limit?: 
       </div>
       <Textarea value={text} onChange={(e) => setText(e.target.value)} className={rows ?? "min-h-32"} invalid={over} aria-label={label ?? "Message"} />
       {limit !== undefined && (
-        <p className={cx("mt-1 text-right font-mono text-[12px]", over ? "text-skip" : "text-muted")}>
+        <p className={cx("mt-1 text-right font-mono text-[12px] tabular-nums", over ? "text-skip" : "text-muted")}>
           {text.length} / {limit}
         </p>
       )}

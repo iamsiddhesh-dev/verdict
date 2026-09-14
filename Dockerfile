@@ -3,6 +3,9 @@
 # and any other host that runs a plain image.
 
 FROM node:22-bookworm-slim AS build
+# Static pages carry absolute share-image URLs, so the public URL is needed at build time.
+ARG SITE_URL=http://localhost:3000
+ENV SITE_URL=$SITE_URL
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci

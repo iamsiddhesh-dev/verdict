@@ -16,6 +16,18 @@ import { startWorker } from "@/lib/pipeline/worker";
 import { newSessionValue, readCookie, SESSION_COOKIE, sessionCookieHeader, verifySessionValue } from "@/lib/session";
 
 const dev = process.env.NODE_ENV !== "production" && !process.argv.includes("--prod");
+
+// `npm run dev:offline`: no Supabase at all. The database is local PGlite and
+// sessions are anonymous browser cookies, so the app runs with nothing but a
+// model key. Values are blanked rather than deleted so Next's own .env loading
+// does not put them back.
+const offline = dev && process.argv.includes("--offline");
+if (offline) {
+  for (const k of ["DATABASE_URL", "NEXT_PUBLIC_SUPABASE_URL", "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", "NEXT_PUBLIC_SUPABASE_ANON_KEY"]) process.env[k] = "";
+}
+// Offline only: `-- --as=<uuid>` opens every browser as that local user, for
+// looking at seeded data without an account.
+const devSessionUser = offline ? process.argv.find((a) => a.startsWith("--as="))?.slice(5) : undefined;
 if (!dev) (process.env as Record<string, string>).NODE_ENV = "production";
 const port = Number(process.env.PORT ?? 3000);
 const hostname = process.env.HOST ?? (dev ? "localhost" : "0.0.0.0");
@@ -33,8 +45,10 @@ if (!authConfigured() && !dev) throw new Error("Sign-in is not configured: set N
 
 const server = createServer((req, res) => {
   const current = localSessions ? verifySessionValue(readCookie(req.headers.cookie, SESSION_COOKIE)) : "account";
-  if (!current && !req.url?.startsWith("/_next/")) {
-    const { value } = newSessionValue();
+  const wrongDevUser = Boolean(devSessionUser && current !== devSessionUser);
+  if ((!current || wrongDevUser) && !req.url?.startsWith("/_next/")) {
+    const { value } = newSessionValue(devSessionUser);
+    if (wrongDevUser) req.headers.cookie = (req.headers.cookie ?? "").replace(/(?:^|;\s*)ja_session=[^;]*/g, "");
     res.setHeader("Set-Cookie", sessionCookieHeader(value));
     req.headers.cookie = [req.headers.cookie, `${SESSION_COOKIE}=${value}`].filter(Boolean).join("; ");
   }

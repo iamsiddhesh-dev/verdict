@@ -1,6 +1,7 @@
 "use client";
 
-import { Check, FileUp, Plus, Trash2, X } from "lucide-react";
+import { ArrowLeft, Check, FileUp, Plus, Trash2, X } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import type { ResumeFacts } from "@/lib/profile/resume";
@@ -20,9 +21,9 @@ interface Initial {
 
 const STEPS = ["Resume", "Links", "Master file", "Confirm"] as const;
 
-export function ProfileSetup({ initial, next }: { initial: Initial | null; next: string }) {
+export function ProfileSetup({ initial, next, initialStep = null }: { initial: Initial | null; next: string; initialStep?: number | null }) {
   const router = useRouter();
-  const [step, setStep] = useState(initial?.facts ? 3 : 0);
+  const [step, setStep] = useState(initialStep ?? (initial?.facts ? 3 : 0));
   const [facts, setFacts] = useState<ResumeFacts | null>(initial?.facts ?? null);
   const [filename, setFilename] = useState(initial?.resumeFilename ?? null);
   const [links, setLinks] = useState({
@@ -36,8 +37,15 @@ export function ProfileSetup({ initial, next }: { initial: Initial | null; next:
   return (
     <div className="mx-auto max-w-3xl space-y-8">
       <div>
-        <h1 className="text-[32px] leading-10 font-semibold tracking-[-0.01em] text-ink">{initial?.confirmed ? "Your profile" : "Set up your profile"}</h1>
-        <p className="mt-1 text-[16px] text-ink-2">Every verdict and every draft is based on this, and nothing outside it is ever claimed for you.</p>
+        {initial?.confirmed && (
+          <Link href="/profile" className="mb-3 inline-flex items-center gap-1.5 rounded-sm text-[14px] text-ink-2 hover:text-ink">
+            <ArrowLeft className="size-4" aria-hidden /> Back to profile
+          </Link>
+        )}
+        <h1 className="text-[28px] leading-9 font-semibold tracking-[-0.02em] text-ink md:text-[32px] md:leading-10">
+          {initial?.confirmed ? "Edit your profile" : "Set up your profile"}
+        </h1>
+        <p className="mt-1 text-[15px] text-ink-2">Every verdict and every draft is based on this, and nothing outside it is ever claimed for you.</p>
       </div>
 
       <ol className="flex flex-wrap items-center gap-2" aria-label="Steps">

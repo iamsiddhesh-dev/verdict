@@ -6,7 +6,7 @@ import { useState } from "react";
 import type { ArtifactView } from "@/lib/pipeline/artifacts";
 import type { RunView } from "@/lib/pipeline/runs";
 import type { BulletStatus, ResumeContent, ResumeDiffEntry } from "@/lib/resume";
-import { Button, Callout, Card, Skeleton, cx } from "./ui/primitives";
+import { Button, Callout, Skeleton, cx } from "./ui/primitives";
 import { api } from "./use-live";
 
 type ResumeView = Omit<ResumeContent, "pdfBase64"> & { hasPdf: boolean };
@@ -44,15 +44,12 @@ export function ResumePanel({
   };
 
   return (
-    <Card className="space-y-6 bg-base">
+    <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h3 className="text-[20px] leading-7 font-semibold text-ink">Tailored resume</h3>
-          <p className="mt-1 max-w-prose text-[14px] text-ink-2">
-            Chooses and reorders what is already on your resume for this role and rephrases bullets in the posting&rsquo;s words. Nothing is added that
-            your resume does not already say.
-          </p>
-        </div>
+        <p className="max-w-prose text-[14px] leading-5 text-ink-2">
+          Puts your most relevant work first, rewords bullets in the posting&rsquo;s terms where your resume already supports it, and fits it to one page.
+          Nothing is added that your resume does not say.
+        </p>
         <Button loading={busy || Boolean(pending)} onClick={start} icon={content ? <RefreshCw className="size-4" /> : undefined}>
           {content ? "Tailor again" : "Tailor resume"}
         </Button>
@@ -70,17 +67,20 @@ export function ResumePanel({
       {error && <p className="text-[13px] text-skip">{error}</p>}
 
       {pending && artifact && (
-        <div className="space-y-3" aria-live="polite">
-          <p className="text-[14px] text-ink-2">{artifact.progress ?? (artifact.status === "queued" ? "Queued." : "Starting.")}</p>
-          <Skeleton className="h-4 w-2/3" />
-          <Skeleton className="h-4 w-full" />
-          <Skeleton className="h-4 w-5/6" />
+        <div className="space-y-3 rounded-lg border border-line bg-surface p-5" aria-live="polite">
+          <p className="flex items-center gap-2 text-[14px] text-ink-2">
+            <span className="size-2 animate-pulse-soft rounded-full bg-accent" aria-hidden />
+            {artifact.progress ?? (artifact.status === "queued" ? "Queued." : "Starting.")}
+          </p>
+          <Skeleton className="h-3.5 w-2/3" />
+          <Skeleton className="h-3.5 w-full" />
+          <Skeleton className="h-3.5 w-5/6" />
         </div>
       )}
       {artifact?.status === "failed" && <Callout tone="skip">{artifact.error}</Callout>}
 
       {content && artifact && <ResumeResult runId={run.id} artifactId={artifact.id} content={content} />}
-    </Card>
+    </div>
   );
 }
 

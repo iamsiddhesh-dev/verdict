@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "node --env-file-if-exists=.env node_modules/tsx/dist/cli.mjs watch --clear-screen=false --ignore ./.next --ignore ./.data server.ts",
+    "dev:offline": "node --env-file-if-exists=.env node_modules/tsx/dist/cli.mjs watch --clear-screen=false --ignore ./.next --ignore ./.data server.ts --offline",
     "build": "next build",
     "start": "node --env-file-if-exists=.env node_modules/tsx/dist/cli.mjs server.ts --prod",
     "typecheck": "tsc --noEmit",
