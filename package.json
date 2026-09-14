@@ -1,0 +1,47 @@
+{
+  "name": "job-agent",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --env-file-if-exists=.env node_modules/tsx/dist/cli.mjs watch --clear-screen=false --ignore ./.next --ignore ./.data server.ts",
+    "build": "next build",
+    "start": "node --env-file-if-exists=.env node_modules/tsx/dist/cli.mjs server.ts --prod",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint",
+    "test": "vitest run",
+    "eval:verdicts": "node --env-file-if-exists=.env node_modules/tsx/dist/cli.mjs scripts/eval-verdicts.ts",
+    "try:resume": "node --env-file-if-exists=.env node_modules/tsx/dist/cli.mjs scripts/try-resume.ts",
+    "probe:providers": "node --env-file-if-exists=.env node_modules/tsx/dist/cli.mjs scripts/probe-providers.ts"
+  },
+  "dependencies": {
+    "@ai-sdk/google": "^4.0.69",
+    "@ai-sdk/groq": "^4.0.41",
+    "@ai-sdk/openai-compatible": "^3.0.48",
+    "@electric-sql/pglite": "^0.5.8",
+    "@mozilla/readability": "^0.6.0",
+    "ai": "^7.0.99",
+    "drizzle-orm": "^0.45.2",
+    "linkedom": "^0.18.13",
+    "lucide-react": "^1.45.0",
+    "mammoth": "^1.12.3",
+    "next": "16.3.5",
+    "postgres": "^3.4.9",
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "tsx": "^4.23.13",
+    "unpdf": "^1.8.1",
+    "ws": "^8.21.3",
+    "zod": "^4.6.4"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/node": "^22",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@types/ws": "^8",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^5",
+    "vitest": "^5.0.0"
+  }
+}

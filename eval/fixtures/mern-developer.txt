@@ -1,0 +1,17 @@
+﻿MERN Stack Developer (0-1 years)
+Company: BrightCart Technologies, Pune (Onsite)
+
+We are hiring a MERN stack developer to build and maintain our e-commerce admin panels.
+
+Requirements (must have):
+- Strong hands-on experience with MongoDB, including aggregation pipelines and schema design
+- Express.js for building REST APIs
+- React.js
+- Node.js
+- Mongoose ODM
+
+Good to have:
+- Redux
+- AWS EC2 deployment
+
+Experience: 0-1 years. Location: Pune, onsite, 6 days a week.

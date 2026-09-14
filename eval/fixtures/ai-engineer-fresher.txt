@@ -1,0 +1,18 @@
+﻿AI Engineer (Fresher)
+Remote (India)
+
+We build AI agents that automate back-office workflows for small businesses.
+
+You will:
+- Build LLM-powered agents with tool calling in Python or TypeScript
+- Design evaluation and guardrails so agents fail safely
+- Integrate third-party APIs
+
+Requirements:
+- Projects that use LLM APIs in real applications
+- Python or TypeScript
+- Familiarity with agent frameworks such as LangGraph
+
+Nice to have:
+- Experience with sandboxed code execution
+- Postgres

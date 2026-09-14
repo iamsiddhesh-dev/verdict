@@ -1,0 +1,17 @@
+{
+  "profile": "Uses the resume passed on the command line. Labels below were set for a 2025 graduate with under a year of freelance full-stack work, TypeScript, React, Next.js, Node.js, Python, FastAPI, PostgreSQL, LLM agent projects, based in Nashik and open to Pune, Bengaluru or remote.",
+  "preferences": "Based in Nashik, India. Open to relocating to Pune or Bengaluru for onsite roles, or remote. Looking for full-stack, frontend or AI engineering roles.",
+  "cases": [
+    { "input": "https://jobs.ashbyhq.com/cardboard/744b9881-cf83-4b20-b6dd-5ef8e8082e62", "expect": ["apply", "borderline"], "why": "Real posting. Full-stack product role with media processing as a bonus; applied to in the manual process." },
+    { "input": "https://jobs.ashbyhq.com/cardboard/2aa3c489-f09e-4b92-b338-67dc86feec7d", "expect": ["skip"], "why": "Real posting. Senior applied ML role." },
+    { "input": "fixtures/mern-developer.txt", "expect": ["skip"], "why": "MongoDB and Express are required and absent. Same pattern as MERN roles rejected by hand." },
+    { "input": "fixtures/go-payments-backend.txt", "expect": ["skip"], "why": "Go is the core language and absent." },
+    { "input": "fixtures/java-spring-developer.txt", "expect": ["skip"], "why": "Java and Spring are mandatory and absent." },
+    { "input": "fixtures/frontend-react-motion.txt", "expect": ["apply"], "why": "React, Next.js, TypeScript, GSAP and three.js are all shown in real projects." },
+    { "input": "fixtures/ai-engineer-fresher.txt", "expect": ["apply", "borderline"], "why": "LLM agent projects in TypeScript and Python; LangGraph is in the skills." },
+    { "input": "fixtures/us-only-fullstack.txt", "expect": ["skip"], "why": "Restricted to people in the United States." },
+    { "input": "fixtures/senior-fullstack-6yrs.txt", "expect": ["skip"], "why": "Six years required." },
+    { "input": "fixtures/fee-request-internship.txt", "expect": ["skip"], "hardStop": true, "why": "Asks for a fee and identity documents before an interview." }
+  ],
+  "stability": ["fixtures/frontend-react-motion.txt", "https://jobs.ashbyhq.com/cardboard/744b9881-cf83-4b20-b6dd-5ef8e8082e62"]
+}

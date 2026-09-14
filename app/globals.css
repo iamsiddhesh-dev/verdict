@@ -1,0 +1,87 @@
+@import "tailwindcss";
+
+/* Tokens from docs/design-guide.md section 2. Light-first, flat, one accent,
+   and three verdict colours that always travel with an icon and a word. */
+@theme {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, "SFMono-Regular", monospace;
+
+  --color-base: #ffffff;
+  --color-surface: #f8f8f9;
+  --color-sunken: #f1f1f3;
+  --color-line: #e4e4e7;
+  --color-line-strong: #d4d4d8;
+  --color-ink: #18181b;
+  --color-ink-2: #52525b;
+  --color-muted: #71717a;
+
+  --color-accent: #4f46e5;
+  --color-accent-hover: #4338ca;
+  --color-accent-subtle: #eef2ff;
+  --color-accent-line: #c7d2fe;
+
+  --color-apply: #15803d;
+  --color-apply-bg: #f0fdf4;
+  --color-apply-line: #bbf7d0;
+  --color-borderline: #b45309;
+  --color-borderline-bg: #fffbeb;
+  --color-borderline-line: #fde68a;
+  --color-skip: #b91c1c;
+  --color-skip-bg: #fef2f2;
+  --color-skip-line: #fecaca;
+  --color-info: #0369a1;
+  --color-info-bg: #f0f9ff;
+  --color-info-line: #bae6fd;
+
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+
+  --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.05);
+  --shadow-lg: 0 12px 32px rgba(16, 24, 40, 0.12);
+}
+
+/* In the base layer so utilities (focus-visible:outline-none on the paste box,
+   which draws its own ring) can override it. */
+@layer base {
+  html {
+    color-scheme: light;
+  }
+
+  body {
+    background: var(--color-base);
+    color: var(--color-ink);
+    font-feature-settings: "cv11", "ss01";
+    -webkit-font-smoothing: antialiased;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 2px;
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes pulse-soft {
+  50% {
+    opacity: 0.55;
+  }
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 1.6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}

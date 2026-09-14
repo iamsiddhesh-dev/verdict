@@ -1,0 +1,10 @@
+﻿Senior Full-Stack Engineer
+Bengaluru, India (Hybrid)
+
+We are looking for a senior engineer to lead our platform team.
+
+Requirements:
+- 6+ years of professional experience building web applications
+- Deep expertise in React, Node.js and PostgreSQL
+- Experience leading and mentoring a team of engineers
+- System design for high-scale distributed systems

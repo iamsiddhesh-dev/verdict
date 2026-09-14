@@ -1,0 +1,14 @@
+﻿Backend Engineer, Payments Platform
+Location: Bengaluru, India (Onsite)
+
+You will build high-throughput payment services in Go.
+
+What you need:
+- 2+ years of professional experience writing production services in Go (Golang)
+- Experience with Kafka or other event streaming systems
+- PostgreSQL and strong SQL
+- Experience designing idempotent APIs for financial transactions
+
+Nice to have:
+- gRPC
+- Kubernetes

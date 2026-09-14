@@ -1,0 +1,16 @@
+﻿Frontend Engineer (React / Next.js)
+Remote, India. Full-time.
+
+We are a small product team building an AI design tool used by marketing teams. You will own the web app's interface end to end.
+
+What we are looking for:
+- Strong React and TypeScript
+- Experience shipping production apps with Next.js
+- An eye for motion and interaction detail; experience with animation libraries such as GSAP or Framer Motion
+- Comfortable working with APIs and integrating LLM features into the UI
+
+Bonus:
+- WebGL or three.js
+- Figma
+
+Experience: 0-2 years. Freshers with strong shipped projects are welcome.
