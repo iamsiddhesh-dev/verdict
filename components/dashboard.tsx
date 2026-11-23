@@ -2,7 +2,7 @@
 
 import { ArrowRight, ChevronRight, Loader2, PauseCircle, Sparkles, UserRound, XCircle } from "lucide-react";
 import Link from "next/link";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import type { Verdict } from "@/lib/pipeline/score";
 import { PasteBox } from "./paste-box";
 import { cx } from "./ui/primitives";
@@ -58,9 +58,17 @@ export function Dashboard({ initialRuns, profileReady, firstName }: { initialRun
     const { runs: next } = await api<{ runs: RunRow[] }>("/api/runs");
     setRuns(next);
   }, []);
-  useLiveEvents((e) => {
+  const connected = useLiveEvents((e) => {
     if (e.kind === "run" && (e.status === "done" || e.status === "failed" || e.status === "needs_input" || e.stage === "fetch" || e.stage === "read")) void refresh();
   });
+
+  // Without the socket, poll while any check is still moving.
+  const moving = runs.some((r) => r.status === "queued" || r.status === "running");
+  useEffect(() => {
+    if (connected || !moving) return;
+    const t = setInterval(() => void refresh(), 4_000);
+    return () => clearInterval(t);
+  }, [connected, moving, refresh]);
 
   const counts = useMemo(() => {
     const c = { all: runs.length, apply: 0, borderline: 0, skip: 0 };

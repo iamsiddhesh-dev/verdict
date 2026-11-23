@@ -74,3 +74,6 @@ export const PUT = route(async (req: Request) => {
 
   return json({ ok: true });
 });
+
+// Work queued by this request is drained in the background on serverless hosts.
+export const maxDuration = 300;

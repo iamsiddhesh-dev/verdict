@@ -5,6 +5,7 @@
 // dropped socket, a sleeping laptop) refetches the run and sees the same state.
 
 import { EventEmitter } from "node:events";
+import { waitUntil } from "@vercel/functions";
 
 export interface RunEvent {
   userId: string;
@@ -29,7 +30,28 @@ export function publish(event: RunEvent) {
   bus().emit("run-event", event);
 }
 
+/**
+ * Serverless hosts (Vercel) have no long-lived process for the worker loop or
+ * the WebSocket server. There, requests drive the queue instead: every request
+ * that adds work, and every status poll from an open tab, drains the queue in
+ * the background after its response is sent. The run row stays the source of
+ * truth, and its lease means a function killed mid-stage is picked up again.
+ */
+export function serverlessWorker(): boolean {
+  return process.env.VERCEL === "1" || process.env.SERVERLESS_WORKER === "1";
+}
+
 /** Lets route handlers wake the worker right away instead of on its next poll. */
 export function nudgeWorker() {
-  bus().emit("work-available");
+  if (!serverlessWorker()) {
+    bus().emit("work-available");
+    return;
+  }
+  // On Vercel, waitUntil keeps the function alive after the response until the
+  // drain settles (bounded by the route's maxDuration). Elsewhere it is a no-op
+  // and the promise simply runs in the long-lived process.
+  const work = import("@/lib/pipeline/worker")
+    .then(({ drain }) => drain())
+    .catch((err) => console.error("[worker] drain failed:", err));
+  waitUntil(work);
 }

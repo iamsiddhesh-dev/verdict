@@ -11,7 +11,7 @@ import { WebSocketServer, type WebSocket } from "ws";
 import { userIdFromCookieHeader } from "@/lib/auth-claims";
 import { getDb } from "@/lib/db";
 import { authConfigured } from "@/lib/supabase/config";
-import { bus, type RunEvent } from "@/lib/events";
+import { bus, serverlessWorker, type RunEvent } from "@/lib/events";
 import { startWorker } from "@/lib/pipeline/worker";
 import { newSessionValue, readCookie, SESSION_COOKIE, sessionCookieHeader, verifySessionValue } from "@/lib/session";
 
@@ -103,7 +103,10 @@ bus().on("run-event", (event: RunEvent) => {
   for (const ws of sockets) if (ws.readyState === ws.OPEN) ws.send(message);
 });
 
-startWorker();
+// SERVERLESS_WORKER=1 runs the queue the way Vercel does (drained by requests),
+// for testing that path locally.
+if (serverlessWorker()) console.log("[worker] serverless mode: requests drain the queue");
+else startWorker();
 
 server.listen(port, hostname, () => {
   console.log(`> Ready on http://${hostname}:${port} (${dev ? "development" : "production"})`);

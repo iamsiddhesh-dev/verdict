@@ -11,7 +11,7 @@ import { EventLog, StageIndicator, stageStates } from "./stages";
 import { ToolsSection } from "./tools-section";
 import { HardStopBanner, TrustPanel } from "./trust-panel";
 import { Button, Callout, Card, Textarea, cx } from "./ui/primitives";
-import { api, useLiveEvents } from "./use-live";
+import { api, liveSocketEnabled, useLiveEvents } from "./use-live";
 import { ScoreRing, VerdictBadge } from "./verdict";
 
 const WORK_MODE: Record<string, string> = { onsite: "Onsite", hybrid: "Hybrid", remote: "Remote" };
@@ -48,7 +48,7 @@ export function RunScreen({ initialRun, profileReady, hasMasterTex }: { initialR
     const t = setInterval(() => {
       void refresh();
       void refreshArtifacts();
-    }, 4_000);
+    }, liveSocketEnabled ? 4_000 : 2_500);
     return () => clearInterval(t);
   }, [connected, moving, refresh, refreshArtifacts]);
 
@@ -73,7 +73,7 @@ export function RunScreen({ initialRun, profileReady, hasMasterTex }: { initialR
           <StageIndicator states={stageStates(run)} />
           {/* The paste card below already explains a blocked fetch; the log would repeat it. */}
           {!(run.status === "needs_input" && run.stage === "fetch") && <EventLog events={run.events} />}
-          {!connected && inProgress && <p className="text-[12px] text-muted">Live updates are reconnecting. The check keeps running on the server either way.</p>}
+          {liveSocketEnabled && !connected && inProgress && <p className="text-[12px] text-muted">Live updates are reconnecting. The check keeps running on the server either way.</p>}
         </Card>
       )}
 

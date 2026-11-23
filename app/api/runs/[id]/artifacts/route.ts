@@ -1,3 +1,4 @@
+import { nudgeWorker } from "@/lib/events";
 import { z } from "zod";
 import { requireUser } from "@/lib/auth";
 import { errorResponse, json, notFound, route } from "@/lib/http";
@@ -9,7 +10,9 @@ export const GET = route(async (_req: Request, ctx: { params: Promise<{ id: stri
   const { id } = await ctx.params;
   const run = await getRunForUser(userId, id);
   if (!run) return notFound();
-  return json({ artifacts: await listArtifacts(run.id) });
+  const list = await listArtifacts(run.id);
+  if (list.some((a) => a.status === "queued" || a.status === "running")) nudgeWorker();
+  return json({ artifacts: list });
 });
 
 const schema = z.discriminatedUnion("kind", [
@@ -53,3 +56,6 @@ export const POST = route(async (req: Request, ctx: { params: Promise<{ id: stri
   const artifact = await createArtifact(run, kind, input);
   return json({ artifact }, 201);
 });
+
+// Work queued by this request is drained in the background on serverless hosts.
+export const maxDuration = 300;

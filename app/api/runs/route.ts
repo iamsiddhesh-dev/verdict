@@ -1,3 +1,4 @@
+import { nudgeWorker } from "@/lib/events";
 import { z } from "zod";
 import { requireUser } from "@/lib/auth";
 import { errorResponse, json, route } from "@/lib/http";
@@ -6,6 +7,7 @@ import { createRun, listRuns } from "@/lib/pipeline/runs";
 export const GET = route(async () => {
   const userId = await requireUser();
   const runs = await listRuns(userId);
+  if (runs.some((r) => r.status === "queued" || r.status === "running")) nudgeWorker();
   return json({
     runs: runs.map((r) => ({
       id: r.id,
@@ -40,3 +42,6 @@ export const POST = route(async (req: Request) => {
   const run = await createRun(userId, { url: url || null, text: text || null });
   return json({ run }, 201);
 });
+
+// Work queued by this request is drained in the background on serverless hosts.
+export const maxDuration = 300;

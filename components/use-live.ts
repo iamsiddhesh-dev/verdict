@@ -16,12 +16,17 @@ export interface LiveEvent {
  * something changed; callers refetch from the API, which is the source of truth.
  * `connected` lets callers fall back to polling while the socket is down.
  */
+/** False on serverless builds (set in next.config.ts), where there is no /ws to connect to. */
+export const liveSocketEnabled = process.env.NEXT_PUBLIC_LIVE_SOCKET !== "off";
+
 export function useLiveEvents(onEvent: (e: LiveEvent) => void) {
   const handler = useRef(onEvent);
   handler.current = onEvent;
   const [connected, setConnected] = useState(false);
 
   useEffect(() => {
+    // Serverless hosts have no WebSocket server; callers poll instead.
+    if (!liveSocketEnabled) return;
     let ws: WebSocket | null = null;
     let closed = false;
     let attempt = 0;

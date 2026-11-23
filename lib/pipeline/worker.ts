@@ -6,7 +6,7 @@
 // for the same model call twice.
 
 import type { runs } from "@/db/schema";
-import { bus } from "@/lib/events";
+import { bus, nudgeWorker } from "@/lib/events";
 import { fetchJob, jobFromPaste, type FetchOutcome } from "@/lib/fetch";
 import { CapacityError, type WaitNotice } from "@/lib/llm";
 import { loadProfile, profileIsReady } from "@/lib/profile";
@@ -158,10 +158,46 @@ export async function processRun(run: RunRow) {
 /** Put a run that stopped for input, or failed, back on the queue. */
 export async function requeue(run: { id: string; userId: string }, patch: Partial<RunRow> = {}) {
   await updateRun(run, { ...patch, status: "queued", leaseUntil: null, attempts: 0, error: null });
-  bus().emit("work-available");
+  nudgeWorker();
 }
 
-const g = globalThis as typeof globalThis & { __jobAgentWorker?: boolean };
+const g = globalThis as typeof globalThis & { __jobAgentWorker?: boolean; __jobAgentDrains?: number };
+
+// A serverless function may run for 300 s. Stop claiming new work well before
+// that so the item in hand can finish; one cut short is reclaimed by its lease.
+const DRAIN_CLAIM_UNTIL_MS = 180_000;
+const DRAINS_PER_INSTANCE = 3;
+
+/**
+ * Serverless mode: process queued runs and artifacts one after another until
+ * the queue is empty or the claim window closes. Many of these can run at once
+ * across instances; SKIP LOCKED and the leases keep them from colliding.
+ */
+export async function drain() {
+  g.__jobAgentDrains ??= 0;
+  if (g.__jobAgentDrains >= DRAINS_PER_INSTANCE) return;
+  g.__jobAgentDrains += 1;
+  const stopClaimingAt = Date.now() + DRAIN_CLAIM_UNTIL_MS;
+  try {
+    while (Date.now() < stopClaimingAt) {
+      const run = await claimRun(LEASE_MS);
+      if (run) {
+        await processRun(run);
+        continue;
+      }
+      const artifact = await claimArtifact(LEASE_MS / 1000);
+      if (artifact) {
+        await processArtifact(artifact);
+        continue;
+      }
+      return;
+    }
+  } catch (err) {
+    console.error("[worker] drain failed:", err);
+  } finally {
+    g.__jobAgentDrains -= 1;
+  }
+}
 
 export function startWorker(concurrency = Number(process.env.WORKER_CONCURRENCY ?? 3)) {
   if (g.__jobAgentWorker) return;

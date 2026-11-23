@@ -8,7 +8,7 @@
 
 import { execFile } from "node:child_process";
 import { existsSync } from "node:fs";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { chmod, copyFile, cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { getDocumentProxy } from "unpdf";
@@ -65,9 +65,38 @@ async function onPath(bin: string): Promise<boolean> {
   return probe.code === 0;
 }
 
+/**
+ * Vercel's function filesystem is read-only apart from /tmp, and Tectonic
+ * writes to its package cache. The build bundles the binary and a cache warmed
+ * on the resume template (scripts/vercel-prebuild.mjs); copy both to /tmp once
+ * per instance so the first compile does not download anything.
+ */
+async function stageBundledTectonic(): Promise<string | null> {
+  if (process.env.VERCEL !== "1") return null;
+  const bundledBin = path.join(process.cwd(), ".data", "bin", "tectonic");
+  if (!existsSync(bundledBin)) return null;
+  const base = path.join(tmpdir(), "tectonic");
+  const bin = path.join(base, "tectonic");
+  const cache = path.join(base, "cache");
+  if (!existsSync(bin)) {
+    await mkdir(base, { recursive: true });
+    await copyFile(bundledBin, bin);
+    await chmod(bin, 0o755);
+    const bundledCache = path.join(process.cwd(), ".data", "tectonic-cache");
+    if (existsSync(bundledCache)) await cp(bundledCache, cache, { recursive: true });
+  }
+  process.env.XDG_CACHE_HOME = cache;
+  return bin;
+}
+
 export function findCompiler(): Promise<Compiler | null> {
   if (!found) {
     found = (async () => {
+      const staged = await stageBundledTectonic().catch((err) => {
+        console.error("[compile] could not stage the bundled tectonic:", err);
+        return null;
+      });
+      if (staged && (await onPath(staged))) return { kind: "tectonic" as const, bin: staged };
       const explicit = process.env.TECTONIC_PATH?.trim();
       const local = path.join(process.cwd(), ".data", "bin", process.platform === "win32" ? "tectonic.exe" : "tectonic");
       for (const bin of [explicit, existsSync(local) ? local : null, "tectonic"]) {

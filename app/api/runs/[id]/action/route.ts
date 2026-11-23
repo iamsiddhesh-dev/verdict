@@ -45,3 +45,6 @@ export const POST = route(async (req: Request, ctx: { params: Promise<{ id: stri
 
   return json({ run: await getRunForUser(userId, id) });
 });
+
+// Work queued by this request is drained in the background on serverless hosts.
+export const maxDuration = 300;
