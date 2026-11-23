@@ -10,7 +10,7 @@ answers, outreach messages and a one-page tailored resume, without claiming anyt
 
 Free to use. Free to run. Built entirely on free tiers.
 
-[Report a bug](https://github.com/iamsiddhesh-dev/verdict/issues) · [Request a feature](https://github.com/iamsiddhesh-dev/verdict/issues)
+**[Try it live](https://verdict-is-live.vercel.app)** · [Report a bug](https://github.com/iamsiddhesh-dev/verdict/issues) · [Request a feature](https://github.com/iamsiddhesh-dev/verdict/issues)
 
 </div>
 
@@ -98,8 +98,14 @@ docker compose up -d --build
 Point `DOMAIN` at the VM's public IP first (a free [DuckDNS](https://www.duckdns.org) name works), and add
 `https://<DOMAIN>/auth/callback` to Supabase's redirect URLs. Update later with `bash deploy/update.sh`.
 
-Serverless platforms such as Vercel are not a fit: the worker, the WebSocket server and the LaTeX compiler
-all need a persistent process.
+### Vercel
+
+The live site runs on Vercel. There is no long-lived process there, so requests drive the queue instead: each
+request that adds work, and each status poll from an open tab, drains queued runs in the background after
+responding, and leases pick up anything a function was cut off in. The browser polls instead of opening a
+WebSocket, and the build bundles a static Tectonic binary with its package cache warmed
+(`scripts/vercel-prebuild.mjs`). Set the variables from `.env.example` in the project, with `DATABASE_URL`
+required, and deploy. Run `SERVERLESS_WORKER=1 npm run dev` to try this mode locally.
 
 ## Scripts
 
