@@ -13,4 +13,3 @@ coverage/
 .claude/
 dist/
 .vercel
-.env*
